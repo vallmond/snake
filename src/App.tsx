@@ -59,6 +59,11 @@ function App() {
   const [aiCount, setAiCount] = useState<number>(3);
   const [cellSize, setCellSize] = useState(BASE_CELL_SIZE);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [joystickActive, setJoystickActive] = useState(false);
+  const [joystickVector, setJoystickVector] = useState({ x: 0, y: 0 });
+  const joystickPointerId = useRef<number | null>(null);
+  const lastJoystickDirection = useRef<Direction | null>(null);
+  const joystickRef = useRef<HTMLDivElement>(null);
 
   const configOverride = useMemo(
     () => {
@@ -143,9 +148,9 @@ function App() {
   }, [enqueueTurn, restart, state.status]);
 
   useEffect(() => {
-    const threshold = 28;
-    let startX = 0;
-    let startY = 0;
+    const threshold = 24;
+    let startX: number | null = null;
+    let startY: number | null = null;
 
     const handleTouchStart = (event: TouchEvent) => {
       if (event.touches.length !== 1) {
@@ -157,15 +162,15 @@ function App() {
     };
 
     const handleTouchEnd = (event: TouchEvent) => {
-      if (!startX && !startY) {
+      if (startX === null || startY === null) {
         return;
       }
       const touch = event.changedTouches[0];
       const deltaX = touch.clientX - startX;
       const deltaY = touch.clientY - startY;
       if (Math.abs(deltaX) < threshold && Math.abs(deltaY) < threshold) {
-        startX = 0;
-        startY = 0;
+        startX = null;
+        startY = null;
         return;
       }
       event.preventDefault();
@@ -174,8 +179,8 @@ function App() {
       } else {
         enqueueTurn(deltaY > 0 ? 'down' : 'up');
       }
-      startX = 0;
-      startY = 0;
+      startX = null;
+      startY = null;
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -187,11 +192,70 @@ function App() {
     };
   }, [enqueueTurn]);
 
-  const handleMobileTurn = useCallback(
-    (direction: Direction) => () => {
-      enqueueTurn(direction);
+  const resolveDirectionFromVector = useCallback((dx: number, dy: number): Direction | null => {
+    if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+      return null;
+    }
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? 'right' : 'left';
+    }
+    return dy > 0 ? 'down' : 'up';
+  }, []);
+
+  const resetJoystick = useCallback(() => {
+    joystickPointerId.current = null;
+    lastJoystickDirection.current = null;
+    setJoystickVector({ x: 0, y: 0 });
+    setJoystickActive(false);
+  }, []);
+
+  const handleJoystickPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    joystickPointerId.current = event.pointerId;
+    lastJoystickDirection.current = null;
+    setJoystickActive(true);
+    setJoystickVector({ x: 0, y: 0 });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const handleJoystickPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (joystickPointerId.current !== event.pointerId) {
+        return;
+      }
+      const container = joystickRef.current;
+      if (!container) {
+        return;
+      }
+      const rect = container.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = event.clientX - centerX;
+      const dy = event.clientY - centerY;
+      const maxRadius = rect.width / 2;
+      const magnitude = Math.sqrt(dx * dx + dy * dy);
+      const clampFactor = magnitude > maxRadius ? maxRadius / magnitude : 1;
+      const clampedX = dx * clampFactor;
+      const clampedY = dy * clampFactor;
+      setJoystickVector({ x: clampedX, y: clampedY });
+
+      const direction = resolveDirectionFromVector(dx, dy);
+      if (direction && direction !== lastJoystickDirection.current) {
+        enqueueTurn(direction);
+        lastJoystickDirection.current = direction;
+      }
     },
-    [enqueueTurn],
+    [enqueueTurn, resolveDirectionFromVector],
+  );
+
+  const handleJoystickPointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (joystickPointerId.current !== event.pointerId) {
+        return;
+      }
+      event.currentTarget.releasePointerCapture(event.pointerId);
+      resetJoystick();
+    },
+    [resetJoystick],
   );
 
   useEffect(() => {
@@ -373,40 +437,23 @@ function App() {
       </div>
       {isMobile && (
         <div className="mobile-controls">
-          <button
-            type="button"
-            className="mobile-button"
-            aria-label="Move up"
-            onClick={handleMobileTurn('up')}
+          <div
+            ref={joystickRef}
+            className={`joystick ${joystickActive ? 'is-active' : ''}`}
+            onPointerDown={handleJoystickPointerDown}
+            onPointerMove={handleJoystickPointerMove}
+            onPointerUp={handleJoystickPointerUp}
+            onPointerCancel={handleJoystickPointerUp}
+            onPointerLeave={handleJoystickPointerUp}
           >
-            ▲
-          </button>
-          <div className="mobile-row">
-            <button
-              type="button"
-              className="mobile-button"
-              aria-label="Move left"
-              onClick={handleMobileTurn('left')}
-            >
-              ◀
-            </button>
-            <button
-              type="button"
-              className="mobile-button"
-              aria-label="Move down"
-              onClick={handleMobileTurn('down')}
-            >
-              ▼
-            </button>
-            <button
-              type="button"
-              className="mobile-button"
-              aria-label="Move right"
-              onClick={handleMobileTurn('right')}
-            >
-              ▶
-            </button>
+            <div
+              className="joystick-thumb"
+              style={{ transform: `translate(${joystickVector.x}px, ${joystickVector.y}px)` }}
+            />
           </div>
+          <button type="button" className="mobile-restart" onClick={restart}>
+            Restart
+          </button>
         </div>
       )}
       <footer className="legend">
