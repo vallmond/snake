@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# Multiplayer Snake Arena
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Play it now: https://vallmond.github.io/snake
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Multisnake arena**: player plus up to four AI snakes spawned around the map with deterministic behaviour.
+- **Deterministic game loop**: fixed-timestep updates, queued inputs, and consistent collision ordering.
+- **Head-to-head combat**: longer snakes survive faceoffs; respawning AI enjoy a brief safe window.
+- **Smart food system**: multiple food types (standard, bulk, speed boost) with deterministic spawning and effects.
+- **AI rivals**: each tick, bots plan their turns by considering obstacles, food distance, and safe exits.
+- **Dynamic board presets**: choose arena sizes, speeds, and opponent counts on demand.
+- **Responsive canvas**: cell size auto-adjusts to fit desktop and mobile viewports without cropping.
+- **Mobile joystick & gestures**: swipe anywhere or use the analog-style on-screen joystick for touch devices.
+- **Restart controls**: instant restart via `R` key, Enter/Space after game over, or button tap on HUD.
+- **GitHub Pages export**: `npm run export:docs` builds to `docs/` with relative asset paths for publishing.
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Visit the printed local URL to play. Use the HUD toggles to experiment with different arenas and opponent counts.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `npm run dev` – start the dev server with hot reload.
+- `npm run build` – type-check and bundle for production.
+- `npm run export:docs` – build and copy static files into `docs/` for GitHub Pages.
+- `npm run lint` – run ESLint on the project.
+
+## Folder Highlights
+
+- `src/game/` – game engine, deterministic RNG, state updates, and AI logic.
+- `src/App.tsx` – canvas renderer, responsive UI, mobile controls, and HUD.
+- `scripts/export-gh-pages.mjs` – helper to publish the latest build to GitHub Pages.
+
+## Controls
+
+- **Desktop**: Arrow keys / WASD to steer, `R` to restart, Enter/Space to restart after game over.
+- **Mobile**: swipe anywhere on the board or drag the joystick; tap HUD restart when needed.
+- **HUD**: adjust board presets, opponent counts, and observe tick/length/boost status in real time.
+
+Enjoy tweaking the arena or branch the AI to create distinctive behaviours and difficulty levels!

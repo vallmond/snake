@@ -210,12 +210,15 @@ function App() {
   }, []);
 
   const handleJoystickPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (state.status !== 'running') {
+      restart();
+    }
     joystickPointerId.current = event.pointerId;
     lastJoystickDirection.current = null;
     setJoystickActive(true);
     setJoystickVector({ x: 0, y: 0 });
     event.currentTarget.setPointerCapture(event.pointerId);
-  }, []);
+  }, [restart, state.status]);
 
   const handleJoystickPointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
