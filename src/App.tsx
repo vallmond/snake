@@ -451,9 +451,6 @@ function App() {
               style={{ transform: `translate(${joystickVector.x}px, ${joystickVector.y}px)` }}
             />
           </div>
-          <button type="button" className="mobile-restart" onClick={restart}>
-            Restart
-          </button>
         </div>
       )}
       <footer className="legend">
