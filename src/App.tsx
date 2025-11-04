@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameEngine } from './game/useGameEngine';
 import type { Direction } from './game/types';
 import './App.css';
@@ -19,7 +19,9 @@ const boardPresets: BoardPreset[] = [
 
 const opponentOptions = [0, 1, 2, 3, 4];
 
-const cellSize = 24;
+const BASE_CELL_SIZE = 24;
+const MIN_CELL_SIZE = 12;
+const MOBILE_BREAKPOINT = 768;
 
 const keyDirectionMap: Record<string, Direction> = {
   ArrowUp: 'up',
@@ -55,6 +57,8 @@ function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [boardPreset, setBoardPreset] = useState<BoardPreset['id']>('standard');
   const [aiCount, setAiCount] = useState<number>(3);
+  const [cellSize, setCellSize] = useState(BASE_CELL_SIZE);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   const configOverride = useMemo(
     () => {
@@ -76,8 +80,40 @@ function App() {
       width: state.config.cols * cellSize,
       height: state.config.rows * cellSize,
     }),
-    [state.config.cols, state.config.rows],
+    [cellSize, state.config.cols, state.config.rows],
   );
+
+  useEffect(() => {
+    const computeResponsiveMetrics = () => {
+      const width = window.innerWidth || document.documentElement.clientWidth || 1024;
+      const height = window.innerHeight || document.documentElement.clientHeight || 768;
+      setIsMobile(width <= MOBILE_BREAKPOINT);
+
+      const horizontalGutter = width <= MOBILE_BREAKPOINT ? 24 : 96;
+      const verticalGutter = width <= MOBILE_BREAKPOINT ? 260 : 360;
+
+      const widthBased = Math.floor((width - horizontalGutter) / state.config.cols);
+      const heightBased = Math.floor((height - verticalGutter) / state.config.rows);
+      const candidates = [BASE_CELL_SIZE];
+      if (Number.isFinite(widthBased)) {
+        candidates.push(widthBased);
+      }
+      if (Number.isFinite(heightBased)) {
+        candidates.push(heightBased);
+      }
+      const nextCellSize = Math.max(
+        MIN_CELL_SIZE,
+        Math.min(...candidates.filter((value) => Number.isFinite(value) && value > 0)),
+      );
+      setCellSize((previous) => (previous !== nextCellSize ? nextCellSize : previous));
+    };
+
+    computeResponsiveMetrics();
+    window.addEventListener('resize', computeResponsiveMetrics);
+    return () => {
+      window.removeEventListener('resize', computeResponsiveMetrics);
+    };
+  }, [state.config.cols, state.config.rows]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -105,6 +141,58 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, [enqueueTurn, restart, state.status]);
+
+  useEffect(() => {
+    const threshold = 28;
+    let startX = 0;
+    let startY = 0;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        return;
+      }
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (!startX && !startY) {
+        return;
+      }
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.abs(deltaX) < threshold && Math.abs(deltaY) < threshold) {
+        startX = 0;
+        startY = 0;
+        return;
+      }
+      event.preventDefault();
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        enqueueTurn(deltaX > 0 ? 'right' : 'left');
+      } else {
+        enqueueTurn(deltaY > 0 ? 'down' : 'up');
+      }
+      startX = 0;
+      startY = 0;
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [enqueueTurn]);
+
+  const handleMobileTurn = useCallback(
+    (direction: Direction) => () => {
+      enqueueTurn(direction);
+    },
+    [enqueueTurn],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -283,6 +371,44 @@ function App() {
           </div>
         )}
       </div>
+      {isMobile && (
+        <div className="mobile-controls">
+          <button
+            type="button"
+            className="mobile-button"
+            aria-label="Move up"
+            onClick={handleMobileTurn('up')}
+          >
+            ▲
+          </button>
+          <div className="mobile-row">
+            <button
+              type="button"
+              className="mobile-button"
+              aria-label="Move left"
+              onClick={handleMobileTurn('left')}
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              className="mobile-button"
+              aria-label="Move down"
+              onClick={handleMobileTurn('down')}
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              className="mobile-button"
+              aria-label="Move right"
+              onClick={handleMobileTurn('right')}
+            >
+              ▶
+            </button>
+          </div>
+        </div>
+      )}
       <footer className="legend">
         <span>
           Controls: Arrow Keys or WASD steer. R or Enter restart. Yellow fruit adds length, orange crates add three,

@@ -131,6 +131,8 @@ body {
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.25);
   box-shadow: 0 20px 35px rgba(2, 6, 23, 0.5);
+  max-width: 100%;
+  touch-action: none;
 }
 
 .board {
@@ -166,4 +168,84 @@ body {
 
 button {
   font-family: inherit;
+}
+
+.mobile-controls {
+  display: none;
+}
+
+.mobile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobile-button {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #f8fafc;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 16px rgba(2, 6, 23, 0.4);
+}
+
+.mobile-button:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 15px;
+  }
+
+  #root {
+    padding: 1.25rem;
+  }
+
+  .app {
+    gap: 1.1rem;
+    width: 100%;
+  }
+
+  .hud {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    border-radius: 20px;
+  }
+
+  .cluster {
+    justify-content: space-between;
+  }
+
+  .controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .stat {
+    font-size: 0.7rem;
+  }
+
+  .board-wrapper {
+    border-radius: 12px;
+  }
+
+  .legend {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .mobile-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
 }
