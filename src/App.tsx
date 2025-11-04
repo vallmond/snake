@@ -13,8 +13,8 @@ type BoardPreset = {
 
 const boardPresets: BoardPreset[] = [
   { id: 'classic', label: 'Classic 24x18', cols: 24, rows: 18, tickRate: 8 },
-  { id: 'standard', label: 'Standard 32x24', cols: 32, rows: 24, tickRate: 10 },
-  { id: 'grand', label: 'Grand 40x30', cols: 40, rows: 30, tickRate: 12 },
+  { id: 'standard', label: 'Standard 32x24', cols: 32, rows: 24, tickRate: 8 },
+  { id: 'grand', label: 'Grand 40x30', cols: 40, rows: 30, tickRate: 10 },
 ];
 
 const opponentOptions = [0, 1, 2, 3, 4];
@@ -22,6 +22,13 @@ const opponentOptions = [0, 1, 2, 3, 4];
 const BASE_CELL_SIZE = 24;
 const MIN_CELL_SIZE = 12;
 const MOBILE_BREAKPOINT = 768;
+
+const formatDuration = (seconds: number) => {
+  const totalSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const secs = Math.floor(totalSeconds % 60);
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+};
 
 const keyDirectionMap: Record<string, Direction> = {
   ArrowUp: 'up',
@@ -365,12 +372,14 @@ function App() {
   const opponentsAlive = state.snakes.filter((snake) => snake.controller === 'ai').length;
   const opponentsTotal = state.config.aiCount;
   const player = state.snakes.find((snake) => snake.id === 'player');
-  const playerLength = player?.segments.length ?? 0;
+  const playerLength = player?.segments.length ?? state.stats.lastPlayerLength;
   const playerBoost = player?.effects.find((effect) => effect.type === 'speedBoost');
   const boostTicksRemaining = playerBoost ? Math.max(playerBoost.expiresAtTick - state.tick, 0) : 0;
   const boostDisplay = playerBoost
     ? `${playerBoost.multiplier.toFixed(1)}× · ${boostTicksRemaining}t`
     : '—';
+  const elapsedSeconds = state.tick / state.config.tickRate;
+  const formattedDuration = formatDuration(elapsedSeconds);
 
   return (
     <div className="app">
@@ -435,6 +444,20 @@ function App() {
           <div className="overlay">
             <h2>Game Over</h2>
             <p>Press R or Enter to restart</p>
+            <div className="summary">
+              <div className="summary-row">
+                <span className="summary-label">Length</span>
+                <span className="summary-value">{state.stats.lastPlayerLength}</span>
+              </div>
+              <div className="summary-row">
+                <span className="summary-label">Kills</span>
+                <span className="summary-value">{state.stats.playerKills}</span>
+              </div>
+              <div className="summary-row">
+                <span className="summary-label">Time</span>
+                <span className="summary-value">{formattedDuration}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>

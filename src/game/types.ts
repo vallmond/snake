@@ -57,6 +57,7 @@ export interface GameState {
   rngState: number;
   status: 'running' | 'gameover';
   respawnQueue: RespawnTicket[];
+  stats: GameStats;
 }
 
 export interface InputCommand {
@@ -69,4 +70,9 @@ export interface RespawnTicket {
   snakeId: string;
   controller: Snake['controller'];
   ticksRemaining: number;
+}
+
+export interface GameStats {
+  playerKills: number;
+  lastPlayerLength: number;
 }

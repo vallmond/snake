@@ -160,6 +160,32 @@ body {
   text-transform: uppercase;
 }
 
+.summary {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 180px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.summary-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.summary-value {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
 .legend {
   font-size: 0.85rem;
   color: rgba(203, 213, 225, 0.75);

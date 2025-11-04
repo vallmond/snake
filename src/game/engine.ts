@@ -41,7 +41,7 @@ const nextPosition = (from: Vec2, direction: Direction): Vec2 => {
 export const defaultConfig: GameConfig = {
   cols: 32,
   rows: 24,
-  tickRate: 10,
+  tickRate: 8,
   seed: 1,
   aiCount: 2,
 };
@@ -110,6 +110,7 @@ type ProposedMove = {
   collided: boolean;
   reason?: 'wall' | 'body' | 'head';
   tailKey?: string;
+  killedBy?: string;
 };
 
 const createSpawnPoints = (config: GameConfig): Array<{ head: Vec2; direction: Direction }> => {
@@ -145,7 +146,7 @@ const foodDefinitions: FoodDefinition[] = [
     kind: 'speed',
     weight: 0.2,
     growth: 1,
-    effect: { type: 'speedBoost', multiplier: 1.6, duration: 18 },
+    effect: { type: 'speedBoost', multiplier: 1.8, duration: 22 },
   },
 ];
 
@@ -254,6 +255,10 @@ export const createInitialState = (partialConfig: Partial<GameConfig> = {}): Gam
     rngState: config.seed >>> 0,
     status: 'running',
     respawnQueue: [],
+    stats: {
+      playerKills: 0,
+      lastPlayerLength: snakes[0]?.segments.length ?? 0,
+    },
   };
 
   return replenishFood(state, rng);
@@ -476,6 +481,7 @@ export const advanceState = (state: GameState, commands: InputCommand[]): GameSt
       if (!otherTailVacates) {
         move.collided = true;
         move.reason = 'body';
+        move.killedBy = occupant;
       }
     }
   });
@@ -509,6 +515,7 @@ export const advanceState = (state: GameState, commands: InputCommand[]): GameSt
         if (move !== winner) {
           move.collided = true;
           move.reason = 'head';
+          move.killedBy = winner.snake.id;
         }
       });
       return;
@@ -519,6 +526,8 @@ export const advanceState = (state: GameState, commands: InputCommand[]): GameSt
       move.reason = 'head';
     });
   });
+
+  let playerKillDelta = 0;
 
   const nextSnakes: Snake[] = proposedMoves.map((move) => {
     const { snake } = move;
@@ -536,6 +545,9 @@ export const advanceState = (state: GameState, commands: InputCommand[]): GameSt
     }
 
     if (move.collided) {
+      if (move.killedBy === 'player') {
+        playerKillDelta += 1;
+      }
       if (snake.controller === 'ai') {
         respawnTicketsToAdd.push({
           snakeId: snake.id,
@@ -589,6 +601,13 @@ export const advanceState = (state: GameState, commands: InputCommand[]): GameSt
   const combinedQueue = respawnQueue.concat(respawnTicketsToAdd);
   const spawnLayouts = createSpawnPoints(state.config);
   const nextTick = state.tick + 1;
+
+  const nextPlayer = nextSnakes.find((snake) => snake.id === 'player');
+  const lastPlayerLength = nextPlayer ? nextPlayer.segments.length : state.stats.lastPlayerLength;
+  const nextStats = {
+    playerKills: state.stats.playerKills + playerKillDelta,
+    lastPlayerLength,
+  };
 
   const occupied = new Set<string>();
   survivors.forEach((snake) => {
@@ -662,6 +681,7 @@ export const advanceState = (state: GameState, commands: InputCommand[]): GameSt
       tick: nextTick,
       rngState: rng.state,
       respawnQueue: updatedQueue,
+      stats: nextStats,
     },
     rng,
   );
